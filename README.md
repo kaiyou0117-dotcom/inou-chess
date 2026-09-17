@@ -4,9 +4,9 @@
 
 ## 構成
 ```
-index.html      盤面・サイドパネルのHTML
-css/style.css   デザイン(ダーク×アンティークゴールドの異能チェス風)
-js/script.js    盤面ロジック・駒データ
+index.html         盤面・サイドパネルのHTML
+style/style.css    デザイン(ダーク×アンティークゴールドの異能チェス風)
+script/script.js   盤面ロジック・駒データ
 ```
 
 ## 公開方法
