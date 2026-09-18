@@ -18,11 +18,14 @@
   text-decoration: none;
   color: var(--text-primary);
   transition: border-color 0.15s ease, transform 0.15s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 .mode-card:hover {
   border-color: var(--accent-gold);
   transform: translateY(-2px);
 }
+.mode-card:active { transform: translateY(0); }
 .mode-card.disabled {
   opacity: 0.55;
   pointer-events: none;

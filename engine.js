@@ -6,7 +6,8 @@
    特殊能力：海洋恐怖症の召喚、情報の悪魔の範囲破壊、鉄拳の悪魔の
    (味方限定)飛び越え、社畜魔導士の専用移動範囲とダメージ軽減、
    社畜魔導士→コードネームAMBERの変身と2回行動、
-   嘘の悪魔の「嘘」召喚(1試合1回)、副駒「嘘」の2回移動での自然消滅
+   嘘の悪魔の「嘘」召喚(1試合1回)、副駒「嘘」の2回移動での自然消滅 /
+   マス単位の演出エフェクト(移動・撃破・被弾・召喚・変身・消滅の枠フラッシュ、駒の出現ポップ)
    未実装 (TODO): チェック/チェックメイト判定、編成モードでのspecial/normal
    選択UI、キャラごとの専用グラフィック、「レンレン」駒本体
    ============================================================ */
@@ -165,7 +166,7 @@ let currentTurn = "w";
 let selected = null; // { row, col }
 let legalTargets = []; // [{row, col}]
 let gameOver = false;
-let lastDamagedSquare = null; // 直前のターンでダメージを受けたマス(演出用)
+let pendingEffects = []; // 直前の操作で発生した演出イベント一覧 [{row,col,kind}] kind: move/capture/damage/summon/destroy/transform
 
 // コードネームAMBERの2回行動管理
 let pendingBonusMove = null; // { row, col } — このターン、追加行動が可能なAMBERの現在位置
@@ -255,8 +256,10 @@ function render() {
       cell.dataset.col = col;
 
       const piece = board[row][col];
+      const cellEffects = pendingEffects.filter((e) => e.row === row && e.col === col);
       if (piece) {
-        cell.appendChild(renderPiece(piece));
+        const shouldPop = cellEffects.some((e) => ["move", "capture", "summon", "transform"].includes(e.kind));
+        cell.appendChild(renderPiece(piece, shouldPop));
       }
 
       if (selected && selected.row === row && selected.col === col) {
@@ -266,15 +269,13 @@ function render() {
         cell.classList.add("selectable");
         if (piece) cell.classList.add("has-piece");
       }
-      if (lastDamagedSquare && lastDamagedSquare.row === row && lastDamagedSquare.col === col) {
-        cell.classList.add("damage-flash");
-      }
+      cellEffects.forEach((e) => cell.classList.add(`fx-${e.kind}`));
 
       cell.addEventListener("click", () => onCellClick(row, col));
       boardEl.appendChild(cell);
     }
   }
-  lastDamagedSquare = null;
+  pendingEffects = [];
 
   turnTextEl.textContent = gameOver
     ? "対局終了"
@@ -298,10 +299,10 @@ function render() {
   renderSelectedPanel();
 }
 
-function renderPiece(piece) {
+function renderPiece(piece, pop = false) {
   const data = pieceData(piece.type, piece.variant);
   const wrap = document.createElement("div");
-  wrap.className = `piece ${piece.color === "w" ? "white" : "black"}`;
+  wrap.className = `piece ${piece.color === "w" ? "white" : "black"}${pop ? " piece-pop" : ""}`;
 
   const glyph = document.createElement("span");
   glyph.className = "piece-glyph";
@@ -426,6 +427,7 @@ function performUsoSummon(row, col) {
   board[row][col] = uso;
   caster.hasSummoned = true;
   appendLog(`${pieceData("Q", "special").name} が ${squareName({ row, col })} に「嘘」を召喚`);
+  addEffect(row, col, "summon");
   summonMode = null;
   selected = null;
   legalTargets = [];
@@ -455,6 +457,7 @@ function performMove(from, to) {
     board[from.row][from.col] = null;
     const data = pieceData(piece.type, piece.variant);
     appendLog(`${data.name}(${PIECE_TYPES[piece.type].role}) ${squareName(from)} → ${squareName(to)}`);
+    addEffect(to.row, to.col, "move");
     moved = true;
     captured = false;
   }
@@ -477,6 +480,7 @@ function performMove(from, to) {
       if (piece.moveCount >= 2) {
         board[finalPos.row][finalPos.col] = null;
         appendLog(`「嘘」が2回移動し、自然消滅した`);
+        addEffect(finalPos.row, finalPos.col, "destroy");
       }
     }
   }
@@ -533,6 +537,7 @@ function resolveAttack(attacker, from, defender, to) {
       `${atkData.name} ${squareName(from)} が ${defData.name} ${squareName(to)} を攻撃(ATK${damage})。` +
       `${defData.name}のHPが尽きて撃破 → ${atkData.name}が${squareName(to)}へ進出`
     );
+    addEffect(to.row, to.col, "capture");
     if (defender.type === "K") {
       gameOver = true;
       appendLog(`${defender.color === "w" ? "白" : "黒"}のキング撃破。${attacker.color === "w" ? "白" : "黒"}の勝利。`);
@@ -550,7 +555,7 @@ function resolveAttack(attacker, from, defender, to) {
         `残りHP${defender.hp}で耐え、${atkData.name}は${squareName(from)}に留まる`
       );
     }
-    lastDamagedSquare = { row: to.row, col: to.col };
+    addEffect(to.row, to.col, "damage");
     return { moved: false, captured: false };
   }
 }
@@ -579,6 +584,7 @@ function triggerUmiSummon(piece, pos) {
   const spot = candidates[Math.floor(Math.random() * candidates.length)];
   board[spot.row][spot.col] = makePiece("P", piece.color, "shikigami");
   appendLog(`${data.name} が ${squareName(spot)} に式神を召喚`);
+  addEffect(spot.row, spot.col, "summon");
 }
 
 // 情報の悪魔：移動後、縦横1マスの全ての駒(敵味方問わず)を破壊。
@@ -603,6 +609,7 @@ function triggerJohoAreaDestroy(piece, pos) {
       appendLog(`${victim.color === "w" ? "白" : "黒"}のキング破壊。${piece.color === "w" ? "白" : "黒"}の勝利。`);
     }
     board[r][c] = null;
+    addEffect(r, c, "destroy");
   });
 
   if (destroyed.length > 0) {
@@ -663,6 +670,7 @@ function onPromotionChoice(moveType) {
     `${pieceData("P", "special").name} が ${squareName({ row, col })} で「コードネームAMBER」に変身` +
     `(${MOVE_TYPE_LABELS[moveType]}型)`
   );
+  addEffect(row, col, "transform");
   pendingPromotion = null;
   closePromotionModal();
   endTurn();
@@ -679,12 +687,18 @@ function squareName({ row, col }) {
   return `${FILES[col]}${8 - row}`;
 }
 
+// このマスに演出イベントを1件記録する。render()が消費してアニメーションクラスに変換する。
+function addEffect(row, col, kind) {
+  pendingEffects.push({ row, col, kind });
+}
+
 function resetGame() {
   board = createInitialBoard();
   currentTurn = "w";
   selected = null;
   legalTargets = [];
   gameOver = false;
+  pendingEffects = [];
   pendingBonusMove = null;
   amberUsedCapture = false;
   pendingPromotion = null;

@@ -85,9 +85,12 @@
   justify-content: center;
   cursor: pointer;
   user-select: none;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 .cell.light { background: var(--board-light); }
 .cell.dark { background: var(--board-dark); }
+.cell:active { filter: brightness(0.93); }
 
 .cell.selectable::after {
   content: "";
@@ -106,11 +109,44 @@
 }
 .cell.selected { outline: 3px solid var(--accent-gold); outline-offset: -3px; }
 
-@keyframes damagePulse {
+/* ---- マス単位の演出エフェクト ---------------------------------- */
+@keyframes fxMovePulse {
+  0% { box-shadow: inset 0 0 0 6px rgba(201, 162, 75, 0.7); }
+  100% { box-shadow: inset 0 0 0 0px rgba(201, 162, 75, 0); }
+}
+.cell.fx-move { animation: fxMovePulse 0.5s ease-out; }
+
+@keyframes fxDamagePulse {
   0% { box-shadow: inset 0 0 0 8px rgba(156, 43, 61, 0.85); }
   100% { box-shadow: inset 0 0 0 0px rgba(156, 43, 61, 0); }
 }
-.cell.damage-flash { animation: damagePulse 0.7s ease-out; }
+.cell.fx-damage { animation: fxDamagePulse 0.7s ease-out; }
+
+@keyframes fxCapturePulse {
+  0% { box-shadow: inset 0 0 0 10px rgba(156, 43, 61, 0.9); }
+  55% { box-shadow: inset 0 0 0 4px rgba(201, 162, 75, 0.65); }
+  100% { box-shadow: inset 0 0 0 0px rgba(156, 43, 61, 0); }
+}
+.cell.fx-capture { animation: fxCapturePulse 0.6s ease-out; }
+
+@keyframes fxSummonPulse {
+  0% { box-shadow: inset 0 0 0 8px rgba(45, 107, 110, 0.75); }
+  100% { box-shadow: inset 0 0 0 0px rgba(45, 107, 110, 0); }
+}
+.cell.fx-summon { animation: fxSummonPulse 0.6s ease-out; }
+
+@keyframes fxTransformPulse {
+  0% { box-shadow: inset 0 0 0 10px rgba(179, 129, 58, 0.85); }
+  100% { box-shadow: inset 0 0 0 0px rgba(179, 129, 58, 0); }
+}
+.cell.fx-transform { animation: fxTransformPulse 0.8s ease-out; }
+
+/* destroyは他の演出と同時に付くことがあるため、CSS順序で最後に上書きされるようにする */
+@keyframes fxDestroyPulse {
+  0% { box-shadow: inset 0 0 0 12px rgba(156, 43, 61, 0.9); background-color: rgba(156, 43, 61, 0.22); }
+  100% { box-shadow: inset 0 0 0 0px rgba(156, 43, 61, 0); background-color: transparent; }
+}
+.cell.fx-destroy { animation: fxDestroyPulse 0.7s ease-out; }
 
 .piece {
   position: relative;
@@ -120,6 +156,14 @@
   line-height: 1;
   pointer-events: none;
 }
+
+@keyframes piecePop {
+  0% { transform: scale(0.4); opacity: 0; }
+  60% { transform: scale(1.12); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.piece.piece-pop { animation: piecePop 0.32s ease-out; }
+
 .piece-glyph {
   font-size: min(9vw, 46px);
   filter: drop-shadow(0 2px 2px rgba(0,0,0,0.5));
