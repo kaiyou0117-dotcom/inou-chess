@@ -7,7 +7,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style/style.css">
+<link rel="stylesheet" href="common.css">
+<link rel="stylesheet" href="menu.css">
 </head>
 <body>
   <div class="app">
@@ -16,59 +17,33 @@
       <p class="subtitle">超弩級の異能式チェス — 馬鹿みたいな駒と馬鹿みたいなルールで勝負だ</p>
     </header>
 
-    <main class="layout">
-      <section class="board-area">
-        <div class="turn-banner" id="turnBanner">
-          <span class="turn-dot" id="turnDot"></span>
-          <span id="turnText">白のターン</span>
-        </div>
-
-        <div class="board-wrap">
-          <div class="rank-labels" id="rankLabels"></div>
-          <div class="board" id="board"></div>
-        </div>
-        <div class="file-labels" id="fileLabels"></div>
-
-        <div class="board-controls">
-          <button id="resetBtn" class="btn">最初から</button>
-          <span class="note">※特殊能力(召喚・範囲破壊・飛び越え等)は未実装。基本移動と捕獲のみ動作します。</span>
-        </div>
-      </section>
-
-      <aside class="side-panel">
-        <div class="panel-block" id="selectedPanel">
-          <h2 class="panel-heading">選択中の駒</h2>
-          <div class="empty-state" id="selectedEmpty">盤上の駒をクリックすると詳細が表示されます。</div>
-          <div class="piece-detail" id="selectedDetail" hidden>
-            <div class="detail-row">
-              <span class="piece-glyph" id="detailGlyph"></span>
-              <div>
-                <div class="detail-name" id="detailName"></div>
-                <div class="detail-role" id="detailRole"></div>
-              </div>
-            </div>
-            <div class="stat-row">
-              <span class="stat hp">HP <b id="detailHp"></b></span>
-              <span class="stat atk">ATK <b id="detailAtk"></b></span>
-              <span class="tentative-badge" id="detailTentative" hidden>ステータス仮</span>
-            </div>
-            <p class="ability-text" id="detailAbility"></p>
+    <main>
+      <div class="mode-grid">
+        <a class="mode-card" href="formation.html">
+          <div class="mode-card-head">
+            <h2 class="mode-card-title">編成モード</h2>
+            <span class="status-badge ready">プレイ可能</span>
           </div>
-        </div>
+          <p class="mode-card-desc">
+            全ての駒が解放された状態で対局するモード。現状は初期配置固定で特殊駒のみが並ぶ雛形段階。
+            HPダメージ制の戦闘、駒図鑑、対局ログを確認できる。今後、駒を自由に編成できるUIを追加予定。
+          </p>
+        </a>
 
-        <div class="panel-block">
-          <h2 class="panel-heading">駒図鑑</h2>
-          <ul class="roster" id="roster"></ul>
-        </div>
+        <a class="mode-card" href="roguelike.html">
+          <div class="mode-card-head">
+            <h2 class="mode-card-title">ローグライクモード</h2>
+            <span class="status-badge wip">準備中</span>
+          </div>
+          <p class="mode-card-desc">
+            対局に勝利するごとに新しい駒を獲得し、編成を強化しながら周回していくモード。
+            現在は仕様検討中で、対局ロジックは未実装。
+          </p>
+        </a>
+      </div>
 
-        <div class="panel-block">
-          <h2 class="panel-heading">対局ログ</h2>
-          <ol class="log" id="log"></ol>
-        </div>
-      </aside>
+      <p class="menu-footer-note">「ここだけ異能のある世界」wiki設定を元にした個人制作のファンゲームです。</p>
     </main>
   </div>
-
-  <script src="script/script.js"></script>
 </body>
 </html>

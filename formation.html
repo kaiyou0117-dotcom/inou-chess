@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>異能チェス - 編成モード</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="common.css">
+<link rel="stylesheet" href="board.css">
+</head>
+<body>
+  <div class="app">
+    <a class="nav-back" href="index.html">← トップへ戻る</a>
+
+    <header class="app-header">
+      <h1 class="title">異能チェス <span style="font-size: 0.5em; color: var(--text-muted);">編成モード</span></h1>
+      <p class="subtitle">超弩級の異能式チェス — 馬鹿みたいな駒と馬鹿みたいなルールで勝負だ</p>
+    </header>
+
+    <main class="layout">
+      <section class="board-area">
+        <div class="turn-banner" id="turnBanner">
+          <span class="turn-dot" id="turnDot"></span>
+          <span id="turnText">白のターン</span>
+        </div>
+
+        <div class="board-wrap">
+          <div class="rank-labels" id="rankLabels"></div>
+          <div class="board" id="board"></div>
+        </div>
+        <div class="file-labels" id="fileLabels"></div>
+
+        <div class="board-controls">
+          <button id="resetBtn" class="btn">最初から</button>
+          <span class="note">※現状は初期配置固定(特殊駒のみ)。自由に駒を編成するUIは未実装。特殊能力(召喚・範囲破壊・飛び越え等)も未実装で、攻撃はHPダメージ制のみ動作します。</span>
+        </div>
+      </section>
+
+      <aside class="side-panel">
+        <div class="panel-block" id="selectedPanel">
+          <h2 class="panel-heading">選択中の駒</h2>
+          <div class="empty-state" id="selectedEmpty">盤上の駒をクリックすると詳細が表示されます。</div>
+          <div class="piece-detail" id="selectedDetail" hidden>
+            <div class="detail-row">
+              <span class="piece-glyph" id="detailGlyph"></span>
+              <div>
+                <div class="detail-name" id="detailName"></div>
+                <div class="detail-role" id="detailRole"></div>
+              </div>
+            </div>
+            <div class="stat-row">
+              <span class="stat hp">HP <b id="detailHp"></b></span>
+              <span class="stat atk">ATK <b id="detailAtk"></b></span>
+              <span class="tentative-badge" id="detailTentative" hidden>ステータス仮</span>
+            </div>
+            <p class="ability-text" id="detailAbility"></p>
+          </div>
+        </div>
+
+        <div class="panel-block">
+          <h2 class="panel-heading">駒図鑑</h2>
+          <ul class="roster" id="roster"></ul>
+        </div>
+
+        <div class="panel-block">
+          <h2 class="panel-heading">対局ログ</h2>
+          <ol class="log" id="log"></ol>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script src="engine.js"></script>
+</body>
+</html>

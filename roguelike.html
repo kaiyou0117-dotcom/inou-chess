@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>異能チェス - ローグライクモード</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="common.css">
+<link rel="stylesheet" href="menu.css">
+<style>
+  .wip-panel {
+    max-width: 640px;
+    margin: 40px auto 0;
+    background: var(--panel);
+    border: 1px solid var(--panel-border);
+    border-radius: 14px;
+    padding: 28px;
+  }
+  .wip-panel h2 {
+    font-family: var(--font-display);
+    color: var(--accent-gold);
+    font-size: 18px;
+    margin: 0 0 14px;
+  }
+  .wip-panel ul {
+    font-size: 13px;
+    line-height: 1.9;
+    color: var(--text-primary);
+    padding-left: 20px;
+    margin: 0;
+  }
+  .wip-panel li { margin-bottom: 4px; }
+</style>
+</head>
+<body>
+  <div class="app">
+    <a class="nav-back" href="index.html">← トップへ戻る</a>
+
+    <header class="app-header">
+      <h1 class="title">異能チェス <span style="font-size: 0.5em; color: var(--text-muted);">ローグライクモード</span></h1>
+      <p class="subtitle">準備中 — まだ対局はできません</p>
+    </header>
+
+    <main>
+      <div class="wip-panel">
+        <h2>予定している仕様</h2>
+        <ul>
+          <li>勝利するごとに新しい駒を獲得していく周回制</li>
+          <li>1戦ごとの編成画面(獲得済みの駒から選んで盤面を組む)</li>
+          <li>周回の進行状況の保存方法を検討中(ブラウザ内保存 or 他手段)</li>
+          <li>敗北時の扱い(周回リセット/一部引き継ぎ等)は未決定</li>
+        </ul>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
