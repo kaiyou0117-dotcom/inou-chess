@@ -2,12 +2,13 @@
    異能チェス — 編成モード用エンジン
    ------------------------------------------------------------
    実装済み: 盤面表示 / 標準的な駒の移動パターン / HPダメージ制の戦闘解決 /
-   ターン切替 / special・normal 2バリエーションのデータ構造 /
-   特殊能力4種(海洋恐怖症の召喚、情報の悪魔の範囲破壊、
-   鉄拳の悪魔の飛び越え、社畜魔導士→コードネームAMBERの変身と2回行動)
-   未実装 (TODO): チェック/チェックメイト判定、編成モードでの
-   special/normal選択UI、キャラごとの専用グラフィック、
-   「レンレン」駒本体(範囲破壊の無効化条件)
+   ターン切替 / special・normal・shikigami・uso のバリエーション構造 /
+   特殊能力：海洋恐怖症の召喚、情報の悪魔の範囲破壊、鉄拳の悪魔の
+   (味方限定)飛び越え、社畜魔導士の専用移動範囲とダメージ軽減、
+   社畜魔導士→コードネームAMBERの変身と2回行動、
+   嘘の悪魔の「嘘」召喚(1試合1回)、副駒「嘘」の2回移動での自然消滅
+   未実装 (TODO): チェック/チェックメイト判定、編成モードでのspecial/normal
+   選択UI、キャラごとの専用グラフィック、「レンレン」駒本体
    ============================================================ */
 
 // 駒種ごとの見た目(ユニコードグリフ)。AMBERは moveAs で選んだ型の見た目を流用する。
@@ -23,21 +24,23 @@ const GLYPHS = {
 
 const MOVE_TYPE_LABELS = { Q: "クイーン", R: "ルーク", B: "ビショップ", N: "ナイト" };
 
-// 駒データ：役割ごとに special(特殊駒) / normal(通常駒) の2バリエーションを保持。
+// 駒データ：役割ごとに special(特殊駒) / normal(通常駒) / その他の副駒バリエーションを保持。
 const PIECE_TYPES = {
   P: {
     role: "ポーン",
     variants: {
       special: {
-        name: "社畜魔導士", hp: 1, atk: 1, tentative: true,
-        ability: "最奥列に到達すると「コードネームAMBER」に変身し、動き(クイーン/ルーク/ビショップ/ナイト)を選べる。変身後は1ターンに2回まで行動可能(捕獲は1回まで)。",
+        name: "社畜魔導士", hp: 2, atk: 1, tentative: false,
+        ability: "行動範囲は前方2マス・横1マス(通常のポーンとは異なる特殊な移動パターン)。" +
+          "一度に2以上のダメージを受けた時、1試合1回だけHP1で耐える。" +
+          "最奥列に到達すると「コードネームAMBER」に変身し、動きを選べる。",
       },
       normal: {
-        name: "通常ポーン", hp: 2, atk: 1, tentative: false,
+        name: "通常ポーン", hp: 1, atk: 1, tentative: false,
         ability: "特殊能力を持たない、素朴な一歩兵。最奥列到達で通常クイーンに成る。",
       },
       shikigami: {
-        name: "式神", hp: 1, atk: 1, tentative: true,
+        name: "式神", hp: 1, atk: 1, tentative: false,
         ability: "海洋恐怖症の召喚で出現する使い魔。特殊能力なし。最奥列到達で通常クイーンに成る。",
       },
     },
@@ -46,11 +49,12 @@ const PIECE_TYPES = {
     role: "ナイト",
     variants: {
       special: {
-        name: "情報の悪魔", hp: 3, atk: 1, tentative: false,
-        ability: "移動した時、縦横1マスの全ての駒(敵味方問わず)を破壊する。相手に「レンレン」がいる場合は無効化(レンレン自体は未実装のため現状は常に発動)。",
+        name: "情報の悪魔", hp: 2, atk: 1, tentative: false,
+        ability: "移動した時、縦横1マスの全ての駒を敵味方関係なく破壊する。相手に「レンレン」がいる場合、" +
+          "この駒は全ての効果を失う(レンレン自体は未実装のため現状は常に発動)。",
       },
       normal: {
-        name: "通常ナイト", hp: 3, atk: 2, tentative: false,
+        name: "通常ナイト", hp: 2, atk: 2, tentative: false,
         ability: "特殊能力を持たない、堅実な騎士。",
       },
     },
@@ -59,11 +63,11 @@ const PIECE_TYPES = {
     role: "ビショップ",
     variants: {
       special: {
-        name: "海洋恐怖症", hp: 1, atk: 2, tentative: false,
+        name: "海洋恐怖症", hp: 1, atk: 1, tentative: false,
         ability: "移動した時、前後左右のいずれか空いているマスに「式神《ポーン》」を召喚する。",
       },
       normal: {
-        name: "通常ビショップ", hp: 3, atk: 2, tentative: false,
+        name: "通常ビショップ", hp: 1, atk: 3, tentative: false,
         ability: "特殊能力を持たない、堅実な司教。",
       },
     },
@@ -72,11 +76,11 @@ const PIECE_TYPES = {
     role: "ルーク",
     variants: {
       special: {
-        name: "鉄拳の悪魔", hp: 4, atk: 3, tentative: false,
-        ability: "直線移動の途中、最初にぶつかった駒を1体だけ(敵味方問わず)飛び越えて進める。2体目にぶつかったら停止。",
+        name: "鉄拳の悪魔", hp: 2, atk: 2, tentative: false,
+        ability: "直線移動中、味方の駒に限り何体でも飛び越えて進める。敵の駒にぶつかったらそこで停止(捕獲可)。",
       },
       normal: {
-        name: "通常ルーク", hp: 4, atk: 3, tentative: false,
+        name: "通常ルーク", hp: 3, atk: 1, tentative: false,
         ability: "特殊能力を持たない、正統派の城。",
       },
     },
@@ -85,12 +89,16 @@ const PIECE_TYPES = {
     role: "クイーン",
     variants: {
       special: {
-        name: "嘘の悪魔", hp: 5, atk: 4, tentative: true,
-        ability: "ステータス・能力ともに未定。仮の数値を表示中。",
+        name: "嘘の悪魔", hp: 2, atk: 3, tentative: false,
+        ability: "1試合につき1回だけ、3〜6段目の指定したマスに「嘘《クイーン》」を召喚できる。",
       },
       normal: {
-        name: "通常クイーン", hp: 5, atk: 4, tentative: false,
+        name: "通常クイーン", hp: 2, atk: 3, tentative: false,
         ability: "特殊能力を持たない、正統派の女王。",
+      },
+      uso: {
+        name: "嘘", hp: 2, atk: 3, tentative: false,
+        ability: "嘘の悪魔が召喚する虚像。通常クイーンと同じ動きをするが、2回移動すると自然消滅する。",
       },
     },
   },
@@ -102,7 +110,7 @@ const PIECE_TYPES = {
         ability: "駒の設定は未定。ひとまず通常のキングと同じ動き(縦横斜め1マス)。HP/ATKは仮の値。",
       },
       normal: {
-        name: "通常キング", hp: 4, atk: 2, tentative: false,
+        name: "通常キング", hp: 5, atk: 1, tentative: false,
         ability: "特殊能力を持たない、正統派の王。",
       },
     },
@@ -111,7 +119,7 @@ const PIECE_TYPES = {
     role: "AMBER",
     variants: {
       special: {
-        name: "コードネームAMBER", hp: 3, atk: 2, tentative: true,
+        name: "コードネームAMBER", hp: 3, atk: 4, tentative: false,
         ability: "社畜魔導士が変身した姿。変身時に選んだ動き(クイーン/ルーク/ビショップ/ナイト)で移動する。1ターンに2回まで行動できるが、捕獲できるのは1回まで。",
       },
     },
@@ -130,7 +138,13 @@ const FILES = ["a", "b", "c", "d", "e", "f", "g", "h"];
 
 // 駒1体を生成。variant省略時は "special"(現状のデフォルト構成)。
 function makePiece(type, color, variant = "special") {
-  return { type, color, variant, hp: pieceData(type, variant).hp };
+  return {
+    type, color, variant,
+    hp: pieceData(type, variant).hp,
+    shieldUsed: false,   // 社畜魔導士のダメージ軽減(1試合1回)
+    moveCount: 0,        // 嘘(副駒)の移動回数カウント
+    hasSummoned: false,  // 嘘の悪魔の召喚(1試合1回)
+  };
 }
 
 // board[row][col]: row0 = 8段目(黒側) 〜 row7 = 1段目(白側)
@@ -160,6 +174,9 @@ let amberUsedCapture = false; // 1回目の行動で捕獲済みか(2回目は�
 // 社畜魔導士の変身選択待ち
 let pendingPromotion = null; // { row, col }
 
+// 嘘の悪魔の召喚モード
+let summonMode = null; // { row, col } — 召喚を発動した嘘の悪魔の位置
+
 // ---- DOM要素 ----------------------------------------------------
 const boardEl = document.getElementById("board");
 const rankLabelsEl = document.getElementById("rankLabels");
@@ -171,6 +188,7 @@ const rosterEl = document.getElementById("roster");
 const selectedEmptyEl = document.getElementById("selectedEmpty");
 const selectedDetailEl = document.getElementById("selectedDetail");
 const skipBonusBtn = document.getElementById("skipBonusBtn");
+const summonUsoBtn = document.getElementById("summonUsoBtn");
 const promotionModalEl = document.getElementById("promotionModal");
 
 // ---- 初期化 -------------------------------------------------------
@@ -180,6 +198,7 @@ function init() {
   render();
   document.getElementById("resetBtn").addEventListener("click", resetGame);
   if (skipBonusBtn) skipBonusBtn.addEventListener("click", onSkipBonusMove);
+  if (summonUsoBtn) summonUsoBtn.addEventListener("click", onActivateSummonMode);
   if (promotionModalEl) {
     promotionModalEl.querySelectorAll(".modal-choice").forEach((btn) => {
       btn.addEventListener("click", () => onPromotionChoice(btn.dataset.move));
@@ -202,7 +221,7 @@ function buildLabels() {
   });
 }
 
-// 駒図鑑：役割ごとに special(特殊駒) → normal(通常駒) の順で並べる
+// 駒図鑑：役割ごとに special(特殊駒) → normal(通常駒) の順で並べる(副駒は含めない)
 function buildRoster() {
   rosterEl.innerHTML = "";
   Object.entries(PIECE_TYPES).forEach(([type, info]) => {
@@ -259,12 +278,22 @@ function render() {
 
   turnTextEl.textContent = gameOver
     ? "対局終了"
-    : pendingBonusMove
-      ? `${currentTurn === "w" ? "白" : "黒"}のターン(AMBER 追加行動)`
-      : currentTurn === "w" ? "白のターン" : "黒のターン";
+    : summonMode
+      ? `${currentTurn === "w" ? "白" : "黒"}のターン(「嘘」の召喚先を選択)`
+      : pendingBonusMove
+        ? `${currentTurn === "w" ? "白" : "黒"}のターン(AMBER 追加行動)`
+        : currentTurn === "w" ? "白のターン" : "黒のターン";
   turnDotEl.classList.toggle("black", currentTurn === "b" && !gameOver);
 
   if (skipBonusBtn) skipBonusBtn.hidden = !pendingBonusMove;
+
+  if (summonUsoBtn) {
+    const selPiece = selected ? board[selected.row][selected.col] : null;
+    const canSummon =
+      !gameOver && !pendingBonusMove && !pendingPromotion && !summonMode &&
+      selPiece && selPiece.type === "Q" && selPiece.variant === "special" && !selPiece.hasSummoned;
+    summonUsoBtn.hidden = !canSummon;
+  }
 
   renderSelectedPanel();
 }
@@ -288,8 +317,8 @@ function renderPiece(piece) {
 
 function detailRoleText(piece) {
   const roleBase = PIECE_TYPES[piece.type].role;
-  const variantLabel = piece.variant === "special" ? "特殊駒" : "通常駒";
-  let text = `《${roleBase}》・${variantLabel}`;
+  const variantLabels = { special: "特殊駒", normal: "通常駒", shikigami: "副駒", uso: "副駒" };
+  let text = `《${roleBase}》・${variantLabels[piece.variant] || piece.variant}`;
   if (piece.type === "A") {
     text += `・動き:${MOVE_TYPE_LABELS[piece.moveAs]}型`;
   }
@@ -326,6 +355,20 @@ function renderSelectedPanel() {
 function onCellClick(row, col) {
   if (gameOver || pendingPromotion) return;
 
+  // 嘘の召喚先選択モード
+  if (summonMode) {
+    if (legalTargets.some((t) => t.row === row && t.col === col)) {
+      performUsoSummon(row, col);
+    } else {
+      // 対象外をクリック → 召喚モードをキャンセル
+      summonMode = null;
+      selected = null;
+      legalTargets = [];
+      render();
+    }
+    return;
+  }
+
   // すでに駒を選択していて、そのマスが合法手なら移動
   if (selected && legalTargets.some((t) => t.row === row && t.col === col)) {
     performMove(selected, { row, col });
@@ -356,12 +399,45 @@ function onSkipBonusMove() {
   endTurn();
 }
 
+function onActivateSummonMode() {
+  if (!selected) return;
+  const piece = board[selected.row][selected.col];
+  if (!piece || piece.type !== "Q" || piece.variant !== "special" || piece.hasSummoned) return;
+  summonMode = { row: selected.row, col: selected.col };
+  legalTargets = getUsoSummonSquares();
+  render();
+}
+
+// 3〜6段目(row2〜row5)の空きマスが召喚可能地点
+function getUsoSummonSquares() {
+  const squares = [];
+  for (let r = 2; r <= 5; r++) {
+    for (let c = 0; c < 8; c++) {
+      if (!board[r][c]) squares.push({ row: r, col: c });
+    }
+  }
+  return squares;
+}
+
+function performUsoSummon(row, col) {
+  const casterPos = summonMode;
+  const caster = board[casterPos.row][casterPos.col];
+  const uso = makePiece("Q", caster.color, "uso");
+  board[row][col] = uso;
+  caster.hasSummoned = true;
+  appendLog(`${pieceData("Q", "special").name} が ${squareName({ row, col })} に「嘘」を召喚`);
+  summonMode = null;
+  selected = null;
+  legalTargets = [];
+  endTurn();
+}
+
 function endTurn() {
   currentTurn = currentTurn === "w" ? "b" : "w";
   render();
 }
 
-// 移動/攻撃を実行し、能力トリガー・変身判定・AMBERの2回行動を一括管理する
+// 移動/攻撃を実行し、能力トリガー・変身判定・AMBERの2回行動・嘘の消滅を一括管理する
 function performMove(from, to) {
   const piece = board[from.row][from.col];
   const isAmberContinuation =
@@ -389,9 +465,19 @@ function performMove(from, to) {
 
   if (moved) {
     triggerAbility(piece, finalPos);
+
     if (!gameOver && checkPromotion(finalPos)) {
       render(); // 変身選択モーダル待ち。ターン進行はモーダルのコールバックで行う。
       return;
+    }
+
+    // 副駒「嘘」：2回移動すると自然消滅
+    if (!gameOver && piece.type === "Q" && piece.variant === "uso") {
+      piece.moveCount += 1;
+      if (piece.moveCount >= 2) {
+        board[finalPos.row][finalPos.col] = null;
+        appendLog(`「嘘」が2回移動し、自然消滅した`);
+      }
     }
   }
 
@@ -420,13 +506,25 @@ function performMove(from, to) {
 // HPダメージ制の戦闘解決。
 // ATK分だけ防御側のHPを削る。HPが尽きれば撃破して攻撃側がマスへ進出、
 // 耐えた場合は両者ともその場に留まる(攻撃側は進軍できない)。
+// 社畜魔導士(special)は2以上のダメージで死ぬはずだった時、1試合1回だけHP1で耐える。
 // 戻り値: { moved: 攻撃側が実際にそのマスへ進出したか, captured: 撃破できたか }
 function resolveAttack(attacker, from, defender, to) {
   const atkData = pieceData(attacker.type, attacker.variant);
   const defData = pieceData(defender.type, defender.variant);
   const damage = atkData.atk;
 
-  defender.hp -= damage;
+  let newHp = defender.hp - damage;
+  let shielded = false;
+  if (
+    newHp <= 0 && damage >= 2 &&
+    defender.type === "P" && defender.variant === "special" &&
+    !defender.shieldUsed
+  ) {
+    newHp = 1;
+    defender.shieldUsed = true;
+    shielded = true;
+  }
+  defender.hp = newHp;
 
   if (defender.hp <= 0) {
     board[to.row][to.col] = attacker;
@@ -441,10 +539,17 @@ function resolveAttack(attacker, from, defender, to) {
     }
     return { moved: true, captured: true };
   } else {
-    appendLog(
-      `${atkData.name} ${squareName(from)} が ${defData.name} ${squareName(to)} を攻撃(ATK${damage})。` +
-      `残りHP${defender.hp}で耐え、${atkData.name}は${squareName(from)}に留まる`
-    );
+    if (shielded) {
+      appendLog(
+        `${atkData.name} ${squareName(from)} が ${defData.name} ${squareName(to)} を攻撃(ATK${damage})。` +
+        `${defData.name}は「一度だけ耐える」効果でHP1に耐えた(以後この効果は使用不可)。${atkData.name}は${squareName(from)}に留まる`
+      );
+    } else {
+      appendLog(
+        `${atkData.name} ${squareName(from)} が ${defData.name} ${squareName(to)} を攻撃(ATK${damage})。` +
+        `残りHP${defender.hp}で耐え、${atkData.name}は${squareName(from)}に留まる`
+      );
+    }
     lastDamagedSquare = { row: to.row, col: to.col };
     return { moved: false, captured: false };
   }
@@ -549,7 +654,10 @@ function onPromotionChoice(moveType) {
   if (!pendingPromotion) return;
   const { row, col } = pendingPromotion;
   const oldPiece = board[row][col];
-  const amber = { type: "A", color: oldPiece.color, variant: "special", moveAs: moveType, hp: pieceData("A", "special").hp };
+  const amber = {
+    type: "A", color: oldPiece.color, variant: "special", moveAs: moveType,
+    hp: pieceData("A", "special").hp, shieldUsed: false, moveCount: 0, hasSummoned: false,
+  };
   board[row][col] = amber;
   appendLog(
     `${pieceData("P", "special").name} が ${squareName({ row, col })} で「コードネームAMBER」に変身` +
@@ -580,6 +688,7 @@ function resetGame() {
   pendingBonusMove = null;
   amberUsedCapture = false;
   pendingPromotion = null;
+  summonMode = null;
   closePromotionModal();
   logEl.innerHTML = "";
   render();
@@ -607,7 +716,8 @@ function generateMoves(row, col) {
   }
 
   switch (piece.type) {
-    case "P": return pawnMoves(row, col, piece);
+    case "P":
+      return piece.variant === "special" ? shachikuMoves(row, col, piece) : pawnMoves(row, col, piece);
     case "N": return knightMoves(row, col, piece);
     case "B": return slideMoves(row, col, piece, [[1,1],[1,-1],[-1,1],[-1,-1]]);
     case "R":
@@ -640,27 +750,49 @@ function slideMoves(row, col, piece, directions) {
   return moves;
 }
 
-// 鉄拳の悪魔専用：直線上、最初にぶつかった駒を1体だけ(敵味方問わず)飛び越えられる
+// 鉄拳の悪魔専用：直線移動中、味方の駒は何体でも飛び越えられる。
+// 敵の駒にぶつかったら、そこで捕獲可能(通常のスライド駒と同じ)でそれ以上は進めない。
 function ironFistRookMoves(row, col, piece) {
   const directions = [[1,0],[-1,0],[0,1],[0,-1]];
   const moves = [];
   for (const [dr, dc] of directions) {
     let r = row + dr, c = col + dc;
-    let jumped = false;
     while (inBounds(r, c)) {
       const occupant = board[r][c];
       if (!occupant) {
         moves.push({ row: r, col: c });
-      } else if (!jumped) {
-        // 最初にぶつかった駒：敵ならここで捕獲する手も選べる。さらに飛び越えて先へ進む権利を得る。
-        if (occupant.color !== piece.color) moves.push({ row: r, col: c });
-        jumped = true;
+      } else if (occupant.color === piece.color) {
+        // 味方は素通り(飛び越え)。着地はできない。
       } else {
-        // 2体目にぶつかった駒：これ以上は進めない。敵ならここで捕獲してストップ。
-        if (occupant.color !== piece.color) moves.push({ row: r, col: c });
-        break;
+        moves.push({ row: r, col: c }); // 敵：ここで捕獲可能
+        break; // これ以上は進めない
       }
       r += dr; c += dc;
+    }
+  }
+  return moves;
+}
+
+// 社畜魔導士専用：前方1〜2マス(空きマスのみ進める)、左右1マス(攻撃可)
+function shachikuMoves(row, col, piece) {
+  const moves = [];
+  const dir = piece.color === "w" ? -1 : 1;
+
+  const f1 = row + dir;
+  if (inBounds(f1, col) && !board[f1][col]) {
+    moves.push({ row: f1, col });
+    const f2 = row + dir * 2;
+    if (inBounds(f2, col) && !board[f2][col]) {
+      moves.push({ row: f2, col });
+    }
+  }
+  for (const dc of [-1, 1]) {
+    const c = col + dc;
+    if (inBounds(row, c)) {
+      const occ = board[row][c];
+      if (!occ || occ.color !== piece.color) {
+        moves.push({ row, col: c });
+      }
     }
   }
   return moves;
@@ -682,19 +814,18 @@ function kingMoves(row, col, piece) {
     .filter(({ row: r, col: c }) => !board[r][c] || board[r][c].color !== piece.color);
 }
 
+// 通常ポーン・式神用：標準的なチェスのポーンの動き
 function pawnMoves(row, col, piece) {
   const moves = [];
   const dir = piece.color === "w" ? -1 : 1;
   const startRow = piece.color === "w" ? 6 : 1;
 
-  // 前進
   if (inBounds(row + dir, col) && !board[row + dir][col]) {
     moves.push({ row: row + dir, col });
     if (row === startRow && !board[row + 2 * dir][col]) {
       moves.push({ row: row + 2 * dir, col });
     }
   }
-  // 斜め捕獲
   for (const dc of [-1, 1]) {
     const r = row + dir, c = col + dc;
     if (inBounds(r, c) && board[r][c] && board[r][c].color !== piece.color) {
