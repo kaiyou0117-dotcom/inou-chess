@@ -31,7 +31,7 @@ const PIECE_TYPES = {
     variants: {
       special: {
         name: "社畜魔導士", hp: 2, atk: 1, tentative: false,
-        ability: "行動範囲は前方2マス・横1マス(通常のポーンとは異なる特殊な移動パターン)。" +
+        ability: "行動範囲は前方1マス(空きマスのみ)・前方2マス先の敵への攻撃(目の前=1マス先の敵は攻撃不可)・横1マス(攻撃可)。" +
           "一度に2以上のダメージを受けた時、1試合1回だけHP1で耐える。" +
           "最奥列に到達すると「コードネームAMBER」に変身し、動きを選べる。",
       },
@@ -773,19 +773,30 @@ function ironFistRookMoves(row, col, piece) {
   return moves;
 }
 
-// 社畜魔導士専用：前方1〜2マス(空きマスのみ進める)、左右1マス(攻撃可)
+// 社畜魔導士専用：前方1マス(空きマスのみ進める)、2マス先の敵への攻撃(間の状態は問わない)、左右1マス(攻撃可)
 function shachikuMoves(row, col, piece) {
   const moves = [];
   const dir = piece.color === "w" ? -1 : 1;
 
+  // 前方1マス：空きマスなら進める(目の前の敵は攻撃できない)
   const f1 = row + dir;
   if (inBounds(f1, col) && !board[f1][col]) {
     moves.push({ row: f1, col });
+    // 前方2マス：1マス目が空きの場合のみ、2マス目が空きなら進める
     const f2 = row + dir * 2;
     if (inBounds(f2, col) && !board[f2][col]) {
       moves.push({ row: f2, col });
     }
   }
+  // 前方2マス先の敵への攻撃：間の1マスの状態(空き/味方/敵)に関わらず届く
+  const atk2 = row + dir * 2;
+  if (inBounds(atk2, col)) {
+    const target = board[atk2][col];
+    if (target && target.color !== piece.color) {
+      moves.push({ row: atk2, col });
+    }
+  }
+  // 左右1マス(攻撃可)
   for (const dc of [-1, 1]) {
     const c = col + dc;
     if (inBounds(row, c)) {
