@@ -34,7 +34,8 @@
 
         <div class="board-controls">
           <button id="resetBtn" class="btn">最初から</button>
-          <span class="note">※現状は初期配置固定(特殊駒のみ)。自由に駒を編成するUIは未実装。特殊能力(召喚・範囲破壊・飛び越え等)も未実装で、攻撃はHPダメージ制のみ動作します。</span>
+          <button id="skipBonusBtn" class="btn" hidden>行動終了(2回目を使わない)</button>
+          <span class="note">※チェック/チェックメイト判定・自由編成UIは未実装。海洋恐怖症・情報の悪魔・鉄拳の悪魔・社畜魔導士(AMBER変身)の特殊能力は動作します。</span>
         </div>
       </section>
 
@@ -70,6 +71,18 @@
         </div>
       </aside>
     </main>
+  </div>
+
+  <div class="modal-overlay" id="promotionModal" hidden>
+    <div class="modal-box">
+      <h3 class="modal-title">コードネームAMBER 変身 — 動きを選択</h3>
+      <div class="modal-choices">
+        <button class="btn modal-choice" data-move="Q">クイーン型</button>
+        <button class="btn modal-choice" data-move="R">ルーク型</button>
+        <button class="btn modal-choice" data-move="B">ビショップ型</button>
+        <button class="btn modal-choice" data-move="N">ナイト型</button>
+      </div>
+    </div>
   </div>
 
   <script src="engine.js"></script>
