@@ -53,6 +53,7 @@ const PIECE_TYPES = {
         name: "情報の悪魔", hp: 2, atk: 1, tentative: false,
         ability: "移動した時、縦横1マスの全ての駒を敵味方関係なく破壊する。相手に「レンレン」がいる場合、" +
           "この駒は全ての効果を失う(レンレン自体は未実装のため現状は常に発動)。",
+        image: "jouhou-no-akuma.png",
       },
       normal: {
         name: "通常ナイト", hp: 2, atk: 2, tentative: false,
@@ -66,6 +67,7 @@ const PIECE_TYPES = {
       special: {
         name: "海洋恐怖症", hp: 1, atk: 1, tentative: false,
         ability: "移動した時、前後左右のいずれか空いているマスに「式神《ポーン》」を召喚する。",
+        image: "umi-kyoufushou.png",
       },
       normal: {
         name: "通常ビショップ", hp: 1, atk: 3, tentative: false,
@@ -79,6 +81,7 @@ const PIECE_TYPES = {
       special: {
         name: "鉄拳の悪魔", hp: 2, atk: 2, tentative: false,
         ability: "直線移動中、味方の駒に限り何体でも飛び越えて進める。敵の駒にぶつかったらそこで停止(捕獲可)。",
+        image: "tekken-no-akuma.png",
       },
       normal: {
         name: "通常ルーク", hp: 3, atk: 1, tentative: false,
@@ -230,9 +233,12 @@ function buildRoster() {
       const data = info.variants[variant];
       if (!data) return; // AMBERにはnormalバリエーションが無い
       const tag = variant === "special" ? "特殊" : "通常";
+      const visual = data.image
+        ? `<img src="${data.image}" alt="${data.name}" class="roster-image">`
+        : `<span class="piece-glyph">${GLYPHS[type].w}</span>`;
       const li = document.createElement("li");
       li.innerHTML = `
-        <span class="piece-glyph">${GLYPHS[type].w}</span>
+        ${visual}
         <span class="roster-name">${data.name}
           <span style="color:var(--text-muted); font-weight:400;">《${info.role}》</span>
           <span class="roster-tag">${tag}</span>
@@ -304,10 +310,21 @@ function renderPiece(piece, pop = false) {
   const wrap = document.createElement("div");
   wrap.className = `piece ${piece.color === "w" ? "white" : "black"}${pop ? " piece-pop" : ""}`;
 
-  const glyph = document.createElement("span");
-  glyph.className = "piece-glyph";
-  glyph.textContent = glyphFor(piece);
-  wrap.appendChild(glyph);
+  if (data.image) {
+    const imgWrap = document.createElement("div");
+    imgWrap.className = "piece-image-wrap";
+    const img = document.createElement("img");
+    img.className = "piece-image";
+    img.src = data.image;
+    img.alt = data.name;
+    imgWrap.appendChild(img);
+    wrap.appendChild(imgWrap);
+  } else {
+    const glyph = document.createElement("span");
+    glyph.className = "piece-glyph";
+    glyph.textContent = glyphFor(piece);
+    wrap.appendChild(glyph);
+  }
 
   const stats = document.createElement("span");
   stats.className = "piece-stats";
@@ -342,7 +359,9 @@ function renderSelectedPanel() {
   selectedEmptyEl.hidden = true;
   selectedDetailEl.hidden = false;
 
-  document.getElementById("detailGlyph").textContent = glyphFor(piece);
+  document.getElementById("detailGlyph").innerHTML = data.image
+    ? `<img src="${data.image}" alt="${data.name}" class="detail-piece-image">`
+    : glyphFor(piece);
   document.getElementById("detailName").textContent =
     `${data.name}${piece.color === "w" ? "(白)" : "(黒)"}`;
   document.getElementById("detailRole").textContent = detailRoleText(piece);
