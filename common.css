@@ -3,17 +3,17 @@
    トップページ/各モードページ共通のUI部品(ボタン、戻るリンク等)
    ============================================================ */
 :root {
-  --bg: #0b0c12;
-  --panel: #15161f;
-  --panel-border: #2a2b3a;
-  --board-light: #d9cfae;
-  --board-dark: #322a45;
-  --board-dark-edge: #241f33;
-  --accent-gold: #c9a24b;
+  --bg: #f7f3e9;
+  --panel: #ffffff;
+  --panel-border: #ddd3bd;
+  --board-light: #f2e8cf;
+  --board-dark: #443a5c;
+  --board-dark-edge: #2b2338;
+  --accent-gold: #b3813a;
   --accent-red: #9c2b3d;
-  --accent-teal: #3f7d82;
-  --text-primary: #ece7db;
-  --text-muted: #8b8798;
+  --accent-teal: #2d6b6e;
+  --text-primary: #2a2430;
+  --text-muted: #79717f;
   --font-display: "Shippori Mincho", serif;
   --font-body: "Zen Kaku Gothic New", sans-serif;
 }
@@ -22,7 +22,7 @@
 
 body {
   margin: 0;
-  background: radial-gradient(ellipse at top, #171826 0%, var(--bg) 60%);
+  background: radial-gradient(ellipse at top, #ffffff 0%, var(--bg) 65%);
   color: var(--text-primary);
   font-family: var(--font-body);
   min-height: 100vh;
@@ -45,7 +45,7 @@ body {
   font-size: clamp(28px, 5vw, 44px);
   margin: 0 0 8px;
   letter-spacing: 0.04em;
-  background: linear-gradient(180deg, #f1e9d2, var(--accent-gold));
+  background: linear-gradient(180deg, #3d3150, var(--accent-gold));
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
